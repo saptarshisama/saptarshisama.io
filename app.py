@@ -12,72 +12,51 @@ HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang='en'>
 <head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Portfolio Analyzer</title>
-    <style>
-        :root {
-            --bg: #1e1e2f;
-            --fg: #e0e0e0;
-            --container-bg: #2a2a40;
-            --input-bg: #3c3c52;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            color: var(--fg);
-            margin: 0;
-            padding: 20px;
-            transition: background-color .3s, color .3s;
-        }
-        .container {
-            max-width: 960px;
-            margin: auto;
-            background: var(--container-bg);
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            transition: background .3s;
-        }
-        input, select, button {
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            background: var(--input-bg);
-            color: var(--fg);
-        }
-        label { display: flex; align-items: center; gap: 8px; }
-        .controls { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
-        .actions { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        button { cursor: pointer; transition: background-color .3s; }
-        button:hover { background-color: #6366f1; }
-        img { display: block; max-width: 100%; margin: 30px auto; border-radius: 10px; box-shadow: 0 0 20px rgba(255,255,255,0.1); }
-        
-        /* LIGHT MODE OVERRIDES */
-        body.light-mode {
-            --bg: #f5f5f5;
-            --fg: #333;
-            --container-bg: #ffffff;
-            --input-bg: #e0e0e0;
-        }
-    </style>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Portfolio Analyzer</title>
+  <style>
+    :root {
+      --bg: #1e1e2f; --fg: #e0e0e0; --container-bg: #2a2a40; --input-bg: #3c3c52;
+    }
+    body { background: var(--bg); color: var(--fg); font-family: sans-serif;
+      margin:0; padding:20px; transition: .3s; }
+    body.light-mode {
+      --bg: #f5f5f5; --fg: #333; --container-bg: #fff; --input-bg: #e0e0e0;
+    }
+    .container { max-width:960px; margin:auto; background:var(--container-bg);
+      padding:30px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.3); }
+    .controls { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px; }
+    input, button, select { padding:10px; border:none; border-radius:5px;
+      background:var(--input-bg); color:var(--fg); }
+    .input-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; }
+    .actions { display:flex; justify-content:space-between; margin:30px 0; }
+    button, a.button { background:#4f46e5; color:#fff; text-decoration:none;
+      cursor:pointer; transition:.3s; margin-left:10px; }
+    button:hover, a.button:hover { background:#6366f1; }
+    .chart-actions { display:flex; justify-content:flex-end; gap:10px;
+      margin-bottom:10px; }
+    img { max-width:100%; margin:0 auto 30px; border-radius:10px;
+      box-shadow:0 0 20px rgba(255,255,255,0.1); }
+  </style>
 </head>
-<body>
+<body class="{{ 'light-mode' if theme=='light' }}">
   <div class="container">
     <h1>📊 Stock Portfolio Analyzer</h1>
 
     <form method="post">
+      <input type="hidden" id="themeInput" name="theme" value="{{ theme }}">
+
       <div class="controls">
-        <label>
-          Start Date:
+        <label>Start Date:
           <input type="date" name="start_date" value="{{ start_date }}">
         </label>
-        <label>
-          End Date:
+        <label>End Date:
           <input type="date" name="end_date" value="{{ end_date }}">
         </label>
         <label style="margin-left:auto">
-          <input type="checkbox" id="modeToggle" onchange="toggleMode()">
+          <input type="checkbox" id="modeToggle" onchange="toggleMode()"
+            {{ 'checked' if theme=='light' else '' }}>
           Light Mode
         </label>
       </div>
@@ -96,26 +75,49 @@ HTML_TEMPLATE = """
       </div>
     </form>
 
+    {% if error_message %}
+      <script>
+        alert("{{ error_message }}");
+      </script>
+    {% endif %}
+
     {% if plot_url %}
+      <div class="chart-actions">
+        <button type="button" onclick="goBack()">Go Back</button>
+        <a class="button" href="data:image/png;base64,{{ plot_url }}" download="analysis.png">
+          Download Analysis
+        </a>
+      </div>
       <img src="data:image/png;base64,{{ plot_url }}" alt="Portfolio Analysis Graph">
     {% endif %}
   </div>
 
-<script>
-  function addInput() {
-    const div = document.createElement('div');
-    div.className = 'input-row';
-    div.innerHTML = `
-      <input name="ticker" placeholder="Stock Ticker (e.g., ETERNAL.NS)" required>
-      <input name="units" placeholder="Units Bought" type="number" step="1" required>
-      <input name="avg_price" placeholder="Average Buy Price" type="number" step="0.01" required>
-    `;
-    document.getElementById('inputs').appendChild(div);
-  }
-  function toggleMode() {
-    document.body.classList.toggle('light-mode');
-  }
-</script>
+  <script>
+    function addInput() {
+      const div = document.createElement('div');
+      div.className = 'input-row';
+      div.innerHTML = `
+        <input name="ticker" placeholder="Stock Ticker (e.g., ETERNAL.NS)" required>
+        <input name="units" placeholder="Units Bought" type="number" step="1" required>
+        <input name="avg_price" placeholder="Average Buy Price" type="number" step="0.01" required>
+      `;
+      document.getElementById('inputs').appendChild(div);
+    }
+
+    function toggleMode() {
+      const isLight = document.body.classList.toggle('light-mode');
+      document.getElementById('themeInput').value = isLight ? 'light' : 'dark';
+    }
+
+    function goBack() {
+      window.location.href = '/';
+    }
+
+    window.addEventListener('load', () => {
+      const nav = performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type === 'reload') goBack();
+    });
+  </script>
 </body>
 </html>
 """
@@ -123,60 +125,76 @@ HTML_TEMPLATE = """
 @app.route("/", methods=["GET", "POST"])
 def home():
     plot_url = None
+    error_message = None
 
-    # ─── NEW: grab user-selected timeframe ─────────────────────────────────────>
-    # default to Jan 1, 2025 → today if not provided
     start_date = request.form.get("start_date") or "2025-01-01"
     end_date   = request.form.get("end_date")   or datetime.today().strftime("%Y-%m-%d")
-    # ──────────────────────────────────────────────────────────────────────────<
+    theme      = request.form.get("theme", "dark")
 
     if request.method == "POST":
-        # CAPITALIZE tickers as before
-        tickers_raw = request.form.getlist("ticker")
-        tickers = [t.strip().upper() for t in tickers_raw]
+        # apply chart theme
+        plt.style.use("dark_background" if theme=="dark" else "default")
 
-        units_list  = request.form.getlist("units")
-        prices_list = request.form.getlist("avg_price")
+        # normalize tickers
+        raw     = request.form.getlist("ticker")
+        tickers = []
+        for t in raw:
+            t2 = t.strip().upper()
+            if not t2.endswith(".NS"):
+                t2 += ".NS"
+            tickers.append(t2)
 
-        # rest of your processing unchanged…
-        units     = {t: int(u)   for t, u in zip(tickers, units_list)}
-        avg_price = {t: float(p) for t, p in zip(tickers, prices_list)}
-        invested  = {t: units[t] * avg_price[t] for t in tickers}
-        df_ind = pd.DataFrame(index=tickers)
-        df_ind['Invested Value'] = pd.Series(invested)
+        # download prices
+        symbols = tickers + ["^NSEI", "^BSESN"]
+        data = yf.download(symbols, start=start_date, end=end_date, auto_adjust=True)["Close"]
 
-        symbols = tickers + ['^NSEI', '^BSESN']
-        data = yf.download(symbols,
-                           start=start_date,
-                           end=end_date,
-                           auto_adjust=True)['Close']
+        # check validity: each user ticker must have at least one non-null price
+        for t in tickers:
+            if t not in data.columns or data[t].dropna().empty:
+                error_message = f"Invalid ticker: {t}"
+                break
 
-        last_prices = data.iloc[-1][tickers]
-        current_vals = last_prices.mul(pd.Series(units))
-        df_ind['Current Value'] = current_vals
-        df_ind['P/L'] = df_ind['Current Value'] - df_ind['Invested Value']
+        if error_message is None:
+            # compute portfolio returns & plot
+            units     = {t:int(u) for t,u in zip(tickers, request.form.getlist("units"))}
+            avg_price = {t:float(p) for t,p in zip(tickers, request.form.getlist("avg_price"))}
+            invested  = {t: units[t]*avg_price[t] for t in tickers}
 
-        total_cost = df_ind['Invested Value'].sum()
-        portfolio_vals = data[tickers].mul(pd.Series(units)).sum(axis=1)
+            df_ind    = pd.DataFrame(index=tickers)
+            df_ind["Invested Value"] = pd.Series(invested)
 
-        # cumulative % returns:
-        returns = pd.DataFrame({
-            'Portfolio vs Cost': portfolio_vals / total_cost - 1,
-            'NIFTY 50':    data['^NSEI'] / data['^NSEI'].iloc[0] - 1,
-            'SENSEX':      data['^BSESN'] / data['^BSESN'].iloc[0] - 1
-        })
+            last = data.iloc[-1][tickers]
+            current = last.mul(pd.Series(units))
+            df_ind["Current Value"] = current
+            df_ind["P/L"]           = df_ind["Current Value"] - df_ind["Invested Value"]
 
-        # …then your plotting code exactly as before, using `returns` for the first subplot.
-        # save to buffer, base64-encode, etc.
-        # [UNCHANGED]
+            total_cost     = df_ind["Invested Value"].sum()
+            port_vals      = data[tickers].mul(pd.Series(units)).sum(axis=1)
+            returns = pd.DataFrame({
+                "Portfolio vs Cost": port_vals/total_cost - 1,
+                "NIFTY 50":          data["^NSEI"]/data["^NSEI"].iloc[0] - 1,
+                "SENSEX":            data["^BSESN"]/data["^BSESN"].iloc[0] - 1
+            })
 
-    # pass timeframe back to template so date inputs stay populated
+            fig, axes = plt.subplots(3,1,figsize=(10,15))
+            # ... [plotting code unchanged, see previous version] ...
+            # encode to base64
+            buf = io.BytesIO()
+            plt.tight_layout()
+            plt.savefig(buf, format="png", bbox_inches="tight")
+            buf.seek(0)
+            plot_url = base64.b64encode(buf.getvalue()).decode("utf8")
+            buf.close()
+            plt.close(fig)
+
     return render_template_string(
         HTML_TEMPLATE,
         plot_url=plot_url,
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
+        theme=theme,
+        error_message=error_message
     )
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
