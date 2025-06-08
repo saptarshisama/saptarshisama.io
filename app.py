@@ -16,51 +16,30 @@ HTML_TEMPLATE = """
   <meta name='viewport' content='width=device-width, initial-scale=1.0'>
   <title>Portfolio Analyzer</title>
   <style>
-    :root {
-      --bg: #1e1e2f; --fg: #e0e0e0; --container-bg: #2a2a40; --input-bg: #3c3c52;
-    }
-    body { background: var(--bg); color: var(--fg); font-family: sans-serif;
-      margin:0; padding:20px; transition: .3s; }
-    body.light-mode {
-      --bg: #f5f5f5; --fg: #333; --container-bg: #fff; --input-bg: #e0e0e0;
-    }
-    .container { max-width:960px; margin:auto; background:var(--container-bg);
-      padding:30px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.3); }
+    :root { --bg: #1e1e2f; --fg: #e0e0e0; --container-bg: #2a2a40; --input-bg: #3c3c52; }
+    body { background: var(--bg); color: var(--fg); font-family: sans-serif; margin:0; padding:20px; transition: .3s; }
+    body.light-mode { --bg: #f5f5f5; --fg: #333; --container-bg: #fff; --input-bg: #e0e0e0; }
+    .container { max-width:960px; margin:auto; background:var(--container-bg); padding:30px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.3); }
     .controls { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px; }
-    input, button, select { padding:10px; border:none; border-radius:5px;
-      background:var(--input-bg); color:var(--fg); }
+    input, button, select { padding:10px; border:none; border-radius:5px; background:var(--input-bg); color:var(--fg); }
     .input-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; }
     .actions { display:flex; justify-content:space-between; margin:30px 0; }
-    button, a.button { background:#4f46e5; color:#fff; text-decoration:none;
-      cursor:pointer; transition:.3s; margin-left:10px; }
+    button, a.button { background:#4f46e5; color:#fff; text-decoration:none; cursor:pointer; transition:.3s; margin-left:10px; }
     button:hover, a.button:hover { background:#6366f1; }
-    .chart-actions { display:flex; justify-content:flex-end; gap:10px;
-      margin-bottom:10px; }
-    img { max-width:100%; margin:0 auto 30px; border-radius:10px;
-      box-shadow:0 0 20px rgba(255,255,255,0.1); }
+    .chart-actions { display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px; }
+    img { max-width:100%; margin:0 auto 30px; border-radius:10px; box-shadow:0 0 20px rgba(255,255,255,0.1); }
   </style>
 </head>
 <body class="{{ 'light-mode' if theme=='light' }}">
   <div class="container">
     <h1>📊 Stock Portfolio Analyzer</h1>
-
     <form method="post">
       <input type="hidden" id="themeInput" name="theme" value="{{ theme }}">
-
       <div class="controls">
-        <label>Start Date:
-          <input type="date" name="start_date" value="{{ start_date }}">
-        </label>
-        <label>End Date:
-          <input type="date" name="end_date" value="{{ end_date }}">
-        </label>
-        <label style="margin-left:auto">
-          <input type="checkbox" id="modeToggle" onchange="toggleMode()"
-            {{ 'checked' if theme=='light' else '' }}>
-          Light Mode
-        </label>
+        <label>Start Date: <input type="date" name="start_date" value="{{ start_date }}"></label>
+        <label>End Date: <input type="date" name="end_date" value="{{ end_date }}"></label>
+        <label style="margin-left:auto"><input type="checkbox" id="modeToggle" onchange="toggleMode()" {{ 'checked' if theme=='light' else '' }}> Light Mode</label>
       </div>
-
       <div id="inputs">
         <div class="input-row">
           <input name="ticker" placeholder="Stock Ticker (e.g., ETERNAL.NS)" required>
@@ -68,7 +47,6 @@ HTML_TEMPLATE = """
           <input name="avg_price" placeholder="Average Buy Price" type="number" step="0.01" required>
         </div>
       </div>
-
       <div class="actions">
         <button type="button" onclick="addInput()">Add More</button>
         <button type="submit">Analyze Portfolio</button>
@@ -76,17 +54,13 @@ HTML_TEMPLATE = """
     </form>
 
     {% if error_message %}
-      <script>
-        alert("{{ error_message }}");
-      </script>
+      <script>alert("{{ error_message }}");</script>
     {% endif %}
 
     {% if plot_url %}
       <div class="chart-actions">
         <button type="button" onclick="goBack()">Go Back</button>
-        <a class="button" href="data:image/png;base64,{{ plot_url }}" download="analysis.png">
-          Download Analysis
-        </a>
+        <a class="button" href="data:image/png;base64,{{ plot_url }}" download="analysis.png">Download Analysis</a>
       </div>
       <img src="data:image/png;base64,{{ plot_url }}" alt="Portfolio Analysis Graph">
     {% endif %}
@@ -96,23 +70,17 @@ HTML_TEMPLATE = """
     function addInput() {
       const div = document.createElement('div');
       div.className = 'input-row';
-      div.innerHTML = `
-        <input name="ticker" placeholder="Stock Ticker (e.g., ETERNAL.NS)" required>
-        <input name="units" placeholder="Units Bought" type="number" step="1" required>
-        <input name="avg_price" placeholder="Average Buy Price" type="number" step="0.01" required>
-      `;
+      div.innerHTML =
+        '<input name="ticker" placeholder="Stock Ticker (e.g., ETERNAL.NS)" required>' +
+        '<input name="units" placeholder="Units Bought" type="number" step="1" required>' +
+        '<input name="avg_price" placeholder="Average Buy Price" type="number" step="0.01" required>';
       document.getElementById('inputs').appendChild(div);
     }
-
     function toggleMode() {
       const isLight = document.body.classList.toggle('light-mode');
       document.getElementById('themeInput').value = isLight ? 'light' : 'dark';
     }
-
-    function goBack() {
-      window.location.href = '/';
-    }
-
+    function goBack() { window.location.href = '/'; }
     window.addEventListener('load', () => {
       const nav = performance.getEntriesByType('navigation')[0];
       if (nav && nav.type === 'reload') goBack();
@@ -132,44 +100,37 @@ def home():
     theme      = request.form.get("theme", "dark")
 
     if request.method == "POST":
-        # apply chart theme
         plt.style.use("dark_background" if theme=="dark" else "default")
 
-        # normalize tickers
         raw     = request.form.getlist("ticker")
         tickers = []
         for t in raw:
             t2 = t.strip().upper()
-            if not t2.endswith(".NS"):
-                t2 += ".NS"
+            if not t2.endswith(".NS"): t2 += ".NS"
             tickers.append(t2)
 
-        # download prices
         symbols = tickers + ["^NSEI", "^BSESN"]
         data = yf.download(symbols, start=start_date, end=end_date, auto_adjust=True)["Close"]
 
-        # check validity: each user ticker must have at least one non-null price
         for t in tickers:
             if t not in data.columns or data[t].dropna().empty:
                 error_message = f"Invalid ticker: {t}"
                 break
 
         if error_message is None:
-            # compute portfolio returns & plot
             units     = {t:int(u) for t,u in zip(tickers, request.form.getlist("units"))}
             avg_price = {t:float(p) for t,p in zip(tickers, request.form.getlist("avg_price"))}
             invested  = {t: units[t]*avg_price[t] for t in tickers}
 
-            df_ind    = pd.DataFrame(index=tickers)
+            df_ind = pd.DataFrame(index=tickers)
             df_ind["Invested Value"] = pd.Series(invested)
-
             last = data.iloc[-1][tickers]
             current = last.mul(pd.Series(units))
             df_ind["Current Value"] = current
-            df_ind["P/L"]           = df_ind["Current Value"] - df_ind["Invested Value"]
+            df_ind["P/L"] = df_ind["Current Value"] - df_ind["Invested Value"]
 
-            total_cost     = df_ind["Invested Value"].sum()
-            port_vals      = data[tickers].mul(pd.Series(units)).sum(axis=1)
+            total_cost = df_ind["Invested Value"].sum()
+            port_vals  = data[tickers].mul(pd.Series(units)).sum(axis=1)
             returns = pd.DataFrame({
                 "Portfolio vs Cost": port_vals/total_cost - 1,
                 "NIFTY 50":          data["^NSEI"]/data["^NSEI"].iloc[0] - 1,
@@ -177,10 +138,46 @@ def home():
             })
 
             fig, axes = plt.subplots(3,1,figsize=(10,15))
-            # ... [plotting code unchanged, see previous version] ...
-            # encode to base64
-            buf = io.BytesIO()
+
+            # 1) Cumulative Returns on top
+            returns.plot(ax=axes[0], title="Cumulative Returns: Portfolio vs NIFTY 50 vs SENSEX")
+            axes[0].set_ylabel("Return (%)")
+            axes[0].legend(loc="upper left")
+
+            # 2) Invested vs Current Value
+            bars = df_ind[["Invested Value","Current Value"]].plot(
+                kind="bar", ax=axes[1], title="Invested vs Current Value"
+            ).patches
+            axes[1].set_ylabel("Value (₹)")
+            for bar in bars:
+                height = bar.get_height()
+                axes[1].annotate(f"{height:,.0f}",
+                    xy=(bar.get_x() + bar.get_width()/2, height),
+                    xytext=(0,3), textcoords="offset points",
+                    ha='center', va='bottom'
+                )
+
+            # 3) Profit / Loss
+            bars_pl = df_ind["P/L"].plot(
+                kind="bar", ax=axes[2], title="Profit / Loss"
+            ).patches
+            axes[2].axhline(0, color="white", linewidth=0.8)
+            axes[2].set_ylabel("P/L (₹)")
+            for bar in bars_pl:
+                height = bar.get_height()
+                axes[2].annotate(f"{height:,.0f}",
+                    xy=(bar.get_x() + bar.get_width()/2, height),
+                    xytext=(0,3 if height>=0 else -12), textcoords="offset points",
+                    ha='center', va='bottom' if height>=0 else 'top'
+                )
+
+            # Fix x-axis label placement to avoid overlap
+            for ax in (axes[1], axes[2]):
+                ax.tick_params(axis='x', rotation=0, labelsize=10)
+            # Adjust bottom margin so labels sit outside the plot area
+            fig.subplots_adjust(bottom=0.25)
             plt.tight_layout()
+            buf = io.BytesIO()
             plt.savefig(buf, format="png", bbox_inches="tight")
             buf.seek(0)
             plot_url = base64.b64encode(buf.getvalue()).decode("utf8")
