@@ -117,7 +117,8 @@ HTML_TEMPLATE = """
 def home():
     plot_url = None
     if request.method == "POST":
-        tickers = request.form.getlist("ticker")
+        tickers_raw = request.form.getlist("ticker")
+        tickers = [t.strip().upper() for t in tickers_raw]  # Capitalize all ticker inputs
         units_list = request.form.getlist("units")
         prices_list = request.form.getlist("avg_price")
 
