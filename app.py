@@ -22,12 +22,14 @@ HTML_TEMPLATE = """
     .container { max-width:960px; margin:auto; background:var(--container-bg); padding:30px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.3); }
     .controls { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px; }
     input, button, select { padding:10px; border:none; border-radius:5px; background:var(--input-bg); color:var(--fg); }
-    .input-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; }
+    .input-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; align-items:center; }
     .actions { display:flex; justify-content:space-between; margin:30px 0; }
     button, a.button { background:#4f46e5; color:#fff; text-decoration:none; cursor:pointer; transition:.3s; margin-left:10px; }
     button:hover, a.button:hover { background:#6366f1; }
     .chart-actions { display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px; }
     img { max-width:100%; margin:0 auto 30px; border-radius:10px; box-shadow:0 0 20px rgba(255,255,255,0.1); }
+    .delete-btn { background:#e74c3c; }
+    .delete-btn:hover { background:#c0392b; }
   </style>
 </head>
 <body class="{{ 'light-mode' if theme=='light' }}">
@@ -42,9 +44,14 @@ HTML_TEMPLATE = """
       </div>
       <div id="inputs">
         <div class="input-row">
-          <input name="ticker" placeholder="Stock Ticker (e.g., ETERNAL.NS)" required>
+          <select name="exchange">
+            <option value="NS">NSE (.NS)</option>
+            <option value="BO">BSE (.BO)</option>
+          </select>
+          <input name="ticker" placeholder="Stock Ticker (e.g., TCS)" required>
           <input name="units" placeholder="Units Bought" type="number" step="1" required>
           <input name="avg_price" placeholder="Average Buy Price" type="number" step="0.01" required>
+          <button type="button" class="delete-btn" onclick="removeRow(this)">Delete</button>
         </div>
       </div>
       <div class="actions">
@@ -67,21 +74,45 @@ HTML_TEMPLATE = """
   </div>
 
   <script>
+    function updateDeleteButtons() {
+      const rows = document.querySelectorAll('.input-row');
+      rows.forEach(r => {
+        const btn = r.querySelector('.delete-btn');
+        btn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+      });
+    }
+
     function addInput() {
       const div = document.createElement('div');
       div.className = 'input-row';
       div.innerHTML =
-        '<input name="ticker" placeholder="Stock Ticker (e.g., ETERNAL.NS)" required>' +
+        '<select name="exchange">' +
+        '<option value="NS">NSE (.NS)</option>' +
+        '<option value="BO">BSE (.BO)</option>' +
+        '</select>' +
+        '<input name="ticker" placeholder="Stock Ticker (e.g., TCS)" required>' +
         '<input name="units" placeholder="Units Bought" type="number" step="1" required>' +
-        '<input name="avg_price" placeholder="Average Buy Price" type="number" step="0.01" required>';
+        '<input name="avg_price" placeholder="Average Buy Price" type="number" step="0.01" required>' +
+        '<button type="button" class="delete-btn" onclick="removeRow(this)">Delete</button>';
       document.getElementById('inputs').appendChild(div);
+      updateDeleteButtons();
     }
+
+    function removeRow(btn) {
+      const row = btn.closest('.input-row');
+      row.remove();
+      updateDeleteButtons();
+    }
+
     function toggleMode() {
       const isLight = document.body.classList.toggle('light-mode');
       document.getElementById('themeInput').value = isLight ? 'light' : 'dark';
     }
+
     function goBack() { window.location.href = '/'; }
+
     window.addEventListener('load', () => {
+      updateDeleteButtons();
       const nav = performance.getEntriesByType('navigation')[0];
       if (nav && nav.type === 'reload') goBack();
     });
@@ -102,12 +133,14 @@ def home():
     if request.method == "POST":
         plt.style.use("dark_background" if theme=="dark" else "default")
 
-        raw     = request.form.getlist("ticker")
+        raw_tickers   = request.form.getlist("ticker")
+        raw_exchanges = request.form.getlist("exchange")
         tickers = []
-        for t in raw:
-            t2 = t.strip().upper()
-            if not t2.endswith(".NS"): t2 += ".NS"
-            tickers.append(t2)
+        for t_raw, exch in zip(raw_tickers, raw_exchanges):
+            t = t_raw.strip().upper().split('.')[0]
+            suffix = f".{exch}"
+            ticker = t if t.endswith(suffix) else t + suffix
+            tickers.append(ticker)
 
         symbols = tickers + ["^NSEI", "^BSESN"]
         data = yf.download(symbols, start=start_date, end=end_date, auto_adjust=True)["Close"]
@@ -138,43 +171,29 @@ def home():
             })
 
             fig, axes = plt.subplots(3,1,figsize=(10,15))
-
-            # 1) Cumulative Returns on top
             returns.plot(ax=axes[0], title="Cumulative Returns: Portfolio vs NIFTY 50 vs SENSEX")
             axes[0].set_ylabel("Return (%)")
             axes[0].legend(loc="upper left")
 
-            # 2) Invested vs Current Value
             bars = df_ind[["Invested Value","Current Value"]].plot(
                 kind="bar", ax=axes[1], title="Invested vs Current Value"
             ).patches
             axes[1].set_ylabel("Value (₹)")
             for bar in bars:
                 height = bar.get_height()
-                axes[1].annotate(f"{height:,.0f}",
-                    xy=(bar.get_x() + bar.get_width()/2, height),
-                    xytext=(0,3), textcoords="offset points",
-                    ha='center', va='bottom'
-                )
+                axes[1].annotate(f"{height:,.0f}", xy=(bar.get_x()+bar.get_width()/2, height), xytext=(0,3), textcoords="offset points", ha='center', va='bottom')
 
-            # 3) Profit / Loss
             bars_pl = df_ind["P/L"].plot(
                 kind="bar", ax=axes[2], title="Profit / Loss"
             ).patches
-            axes[2].axhline(0, color="white", linewidth=0.8)
+            axes[2].axhline(0, linewidth=0.8)
             axes[2].set_ylabel("P/L (₹)")
             for bar in bars_pl:
-                height = bar.get_height()
-                axes[2].annotate(f"{height:,.0f}",
-                    xy=(bar.get_x() + bar.get_width()/2, height),
-                    xytext=(0,3 if height>=0 else -12), textcoords="offset points",
-                    ha='center', va='bottom' if height>=0 else 'top'
-                )
+                h = bar.get_height()
+                axes[2].annotate(f"{h:,.0f}", xy=(bar.get_x()+bar.get_width()/2, h), xytext=(0,3 if h>=0 else -12), textcoords="offset points", ha='center', va='bottom' if h>=0 else 'top')
 
-            # Fix x-axis label placement to avoid overlap
             for ax in (axes[1], axes[2]):
                 ax.tick_params(axis='x', rotation=0, labelsize=10)
-            # Adjust bottom margin so labels sit outside the plot area
             fig.subplots_adjust(bottom=0.25)
             plt.tight_layout()
             buf = io.BytesIO()
